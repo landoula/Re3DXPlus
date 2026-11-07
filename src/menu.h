@@ -85,6 +85,24 @@ typedef struct {
   int st_div, st_bits;
   int st_level;    /* the level select's choice */
   int story_pick;  /* the rival select's choice: its story index (src/rivaldb.h's select), -1 none */
+  /* the story's poem after a won select (MENU_POEM, seqStPoem; menu_story_points sets it): its
+   * row of menu.c's POEMS, -1 none; the screen's frame */
+  int poem, poem_t;
+  /* the story's ending after episode 100 (seqRaceEnding; menu_story_points sets it): 1 due
+   * (after the poem), 2 the app plays it (the select 111's realtime movie with the staff roll
+   * over it, ending_t its frame, ending_skip a tap); menu_ending_done after */
+  int ending, ending_t, ending_skip;
+  /* the bonuses after the ending (MENU_BONUS, mseqStory): per car, the card's flags (1 the
+   * story clear bonus given: +0x279, 2 the undefeated one: +0x186, 4 the second: +0x278, 8 a
+   * story race lost this loop: hasStoryLose +0x187); the ones due (the same bits 1, 2, 4), the
+   * one up and its frame */
+  unsigned char st_bonus_car[MENU_GARAGE_MAKERS][MENU_GARAGE_CARS];
+  /* The card's settings (MENU_CARDSET, the card check's cardcheck_7 and _8, from the car
+   * setting): its meter (clV386CardData +0x26c: 0 Normal, 1 For Racing, 2 SPECIAL, which the
+   * second undefeated bonus unlocks) and BGM sound source (0 3/3DX/3DX+, 1 Maximum Tune & 2:
+   * the clear bonus, 2 Wangan Midnight R: the undefeated bonus), per car */
+  signed char meter_car[MENU_GARAGE_MAKERS][MENU_GARAGE_CARS], sound_car[MENU_GARAGE_MAKERS][MENU_GARAGE_CARS];
+  int bonus_due, bonus_kind, bonus_t;
   int story_n;     /* and its place in the loop, 20 * division + 5 * level + episode */
   int course, official; /* the choice, once a race is ready */
   int demo;        /* rounds of the attract loop so far: picks the movie and the ranked course */
@@ -145,10 +163,18 @@ typedef struct {
   int hq_rows, hd_tex, bloom_on, ssao_on, wet_on, paint_on, aa4;
   /* and on an iPad (res_row, set by the app), the screen's resolution: 1024x768 (0) or the
    * Retina iPads' 2048x1536 (1), from the next start (main.m reads it from the options) */
-  int res_row, hires;
+  int res_row, hires, res_phone;
   /* the gear key pressed; the maker under the cursor meanwhile; the screen it was pressed on
    * (the maker select or the SAVE DATA screen) */
   int option, opt_sel, opt_from;
+  /* The OPTION screen's KEY LAYOUT (MENU_LAYOUT, Allan 10-29): the race's touch keys by group
+   * (hud.h HUD_KEYS_*) their size (percent, 60..160) and move (layout px), kept with the
+   * options; the editor's chosen group, the finger dragging it (lay_drag) from where (lay_x, y
+   * less the group's move), and a button of its panel tapped (lay_tap, 1 + LAY_*) */
+  int key_k[3], key_dx[3], key_dy[3];
+  int lay_sel, lay_drag, lay_tap;
+  void *lay_touch;
+  float lay_x, lay_y;
   /* The dress-up menu the game mode select's wheel key opens (MENU_TG_SELECT, the arcade's
    * seqTgDressUpPartsSelect: there only once a car has won every part): the key pressed, the
    * menu open (its change screens can go back, the wear comes back to it), the kind of part
@@ -389,7 +415,7 @@ enum { MENU_MOVIE, MENU_TITLE, MENU_RANKING, MENU_LOGO, MENU_PROLOGUE, MENU_STAR
        MENU_ST_LEVEL, MENU_ST_RIVAL, MENU_PRE, MENU_ST_TUNE, MENU_TEN_COURSE, MENU_TEN_LEVEL,
        MENU_TG_GET, MENU_TG_AERO, MENU_TG_PART, MENU_TG_WEAR, MENU_OPTION, MENU_SAVE, MENU_HAVE, MENU_GARAGE,
        MENU_CARD, MENU_LVUP, MENU_ST_EFF, MENU_TG_WHEEL, MENU_TG_SELECT, MENU_TG_MAKER, MENU_NAME,
-       MENU_TG_VINYL, MENU_VS, MENU_VS_SEL, MENU_VS_AREA, MENU_VS_MATCH, MENU_SHOGO, MENU_VS_STAR, MENU_INFO };
+       MENU_TG_VINYL, MENU_VS, MENU_VS_SEL, MENU_VS_AREA, MENU_VS_MATCH, MENU_SHOGO, MENU_VS_STAR, MENU_INFO, MENU_LAYOUT, MENU_POEM, MENU_BONUS, MENU_CARDSET };
 enum { MENU_GAME_STORY, MENU_GAME_TEN, MENU_GAME_TA, MENU_GAME_VS };
 
 /* The cars the car select shows in 3D this frame (the carousel, or the colour turntable),
@@ -513,6 +539,18 @@ void menu_finish_vs(menu_state *m, int place, int n);
 int menu_vs_stars(menu_state *m, int place, int n);
 /* the stars screen (MENU_VS_STAR) for star_from and star_delta, then the lobby */
 void menu_vs_star_open(menu_state *m);
+/* The story ending (clEndingConsole): MENU_ENDING_LEN frames; the movie's band at frame t (0
+ * the whole screen, 1 the bottom 640 x 192, 2 the top: clSubScreen), the frame the skip goes
+ * to, the staff roll's draw over the movie at m->ending_t, and back to the menus after it */
+#define MENU_ENDING_LEN 9780
+#define MENU_ENDING_SKIP 9420
+int menu_ending_band(int t);
+void menu_ending_draw(const menu_state *m);
+void menu_ending_done(menu_state *m);
+/* the ending's song level (its fade out from MENU_ENDING_SKIP over 120 frames) */
+float menu_bgm_level(const menu_state *m);
+/* the chosen car's meter for the race (hud_set_meter), its unlock checked */
+int menu_meter(const menu_state *m);
 /* the host closed the game under a versus race: back to MENU_VS, off, with `note` on it */
 void menu_vs_closed(menu_state *m, const char *note);
 /* The area vote's status byte (the lobby's HELLO, which the servers pass on unread): 0 the

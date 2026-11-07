@@ -54,6 +54,9 @@ int hud_load(const char *data_dir);
 /* The car's own meters and gear pattern: its CARDB_PACKS index (src/meterdb.h), and the
  * night meters or the morning ones. Loads their sprites from meters.bin. */
 void hud_set_car(int pack, int night);
+/* The card's meter (clV386CardData::getMeter, the card check's cardcheck_7): 0 the car's own
+ * (Normal), 1 For Racing, 2 SPECIAL; from the next hud_set_car. */
+void hud_set_meter(int style);
 /* First-draws up to n of the HUD's sprites not drawn yet (the car's meters included), for
  * the race's title page; returns how many are left. */
 int hud_warm(float screen_w, float screen_h, int n);
@@ -113,6 +116,21 @@ void hud_fade(const hud_state *h, float grey, float alpha);
 /* The race camera's view and projection (column-major), for the rival's mark over its car */
 void hud_rival_view(const float view[16], const float proj[16]);
 void hud_draw(const hud_state *h, const car_state *car, const car_input *in, float fps);
+
+/* The player's own touch key layout (the OPTION screen's KEY LAYOUT, menu.c MENU_LAYOUT): the
+ * race's keys in three groups, the top row (pause, reset, view, AT/MT), the left side (steer, or
+ * the gyro's brake) and the right side (pedals, shift), each scaled about its screen corner by k
+ * (HUD_KEY_K_MIN..HUD_KEY_K_MAX, 1 the default) and moved by (dx, dy) layout px */
+enum { HUD_KEYS_TOP, HUD_KEYS_LEFT, HUD_KEYS_RIGHT, HUD_KEY_GROUPS };
+#define HUD_KEY_K_MIN 0.6f
+#define HUD_KEY_K_MAX 1.6f
+void hud_layout_set(int group, float k, float dx, float dy);
+/* the group whose keys are at (x, y) (with the gyro's keys or the steer buttons'), -1 none */
+int hud_layout_hit(int gyro, float x, float y);
+/* (dx, dy) brought back so the group, k times its size, stays on the screen */
+void hud_layout_clamp(int group, int gyro, float k, float *dx, float *dy);
+/* the editor's view: the race's keys as hud_layout_set has them, group sel (-1 none) outlined */
+void hud_draw_layout(float screen_w, float screen_h, int gyro, int sel);
 
 /* The menus' left/right keys and back button, in the same style: which one is at (x, y)
  * (-1, +1, HUD_MENU_BACK, or 0), and drawing them (held = the one being pressed, or 0;
