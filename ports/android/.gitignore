@@ -27,12 +27,13 @@ __pycache__/
 /src/namedb.h
 /src/neondb.h
 /src/racing_lamp_data.h
-/src/time_texture.h
 /src/rivaldb.h
 /src/sounddb.h
 /src/sparkdb.h
 /src/steff.h
 /src/story_cutin_data.h
+/src/story_defaults_private.h
+/src/junction_table_private.h
 /src/storycity.h
 /src/storydemo.h
 /src/storyinfo.h
